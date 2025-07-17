@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+        .chat-container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        .chat-history { min-height: 200px; margin-bottom: 16px; }
+        .msg { margin: 8px 0; }
+        .user { color: #1976d2; }
+        .bot { color: #388e3c; }
+        .input-row { display: flex; }
+        input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { margin-left: 8px; padding: 8px 16px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer; }
+        button:disabled { background: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>Chatbot API Test</h2>
+        <div class="chat-history" id="chat-history"></div>
+        <div class="input-row">
+            <input type="text" id="user-input" placeholder="Type your question..." />
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg ' + sender;
+            msgDiv.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Bot'}:</strong> ${text}`;
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            appendMessage('user', text);
+            userInput.value = '';
+            sendBtn.disabled = true;
+            appendMessage('bot', '<em>Thinking...</em>');
+            try {
+                const res = await fetch('/api/chat/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: text })
+                });
+                const data = await res.json();
+                // Remove the 'Thinking...' message
+                chatHistory.removeChild(chatHistory.lastChild);
+                if (data.response) {
+                    appendMessage('bot', data.response);
+                } else {
+                    appendMessage('bot', '[No response]');
+                }
+            } catch (err) {
+                chatHistory.removeChild(chatHistory.lastChild);
+                appendMessage('bot', '<span style="color:red">Error: ' + err.message + '</span>');
+            }
+            sendBtn.disabled = false;
+        }
+
+        sendBtn.onclick = sendMessage;
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html> 
